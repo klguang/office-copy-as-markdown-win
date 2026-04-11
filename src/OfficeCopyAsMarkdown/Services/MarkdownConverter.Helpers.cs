@@ -62,6 +62,11 @@ internal static partial class MarkdownConverter
     private static bool IsInlineCode(HtmlNode node) =>
         HasMonospaceStyle(node) && !node.InnerText.Contains('\n');
 
+    private static bool IsBoldElement(HtmlNode node) =>
+        node.Name.Equals("strong", StringComparison.OrdinalIgnoreCase) ||
+        node.Name.Equals("b", StringComparison.OrdinalIgnoreCase) ||
+        HasBoldStyle(node);
+
     private static bool HasBoldStyle(HtmlNode node) =>
         node.GetAttributeValue("style", string.Empty).Contains("font-weight:bold", StringComparison.OrdinalIgnoreCase);
 
@@ -180,6 +185,45 @@ internal static partial class MarkdownConverter
     {
         var text = NormalizeInlineText(WebUtility.HtmlDecode(node.InnerText));
         return text.Trim();
+    }
+
+    private static bool IsEntireTextBold(HtmlNode node)
+    {
+        var textNodes = node
+            .DescendantsAndSelf()
+            .Where(candidate => candidate.NodeType == HtmlNodeType.Text)
+            .Where(candidate => !string.IsNullOrWhiteSpace(NormalizeInlineText(WebUtility.HtmlDecode(candidate.InnerText))))
+            .ToList();
+
+        if (textNodes.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (var textNode in textNodes)
+        {
+            var isBold = false;
+            for (var current = textNode.ParentNode; current is not null; current = current.ParentNode)
+            {
+                if (IsBoldElement(current))
+                {
+                    isBold = true;
+                    break;
+                }
+
+                if (current == node)
+                {
+                    break;
+                }
+            }
+
+            if (!isBold)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool HasBlockedAncestor(HtmlNode node)

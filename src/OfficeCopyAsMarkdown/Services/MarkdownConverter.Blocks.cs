@@ -43,6 +43,12 @@ internal static partial class MarkdownConverter
 
             if (node.Name.Equals("table", StringComparison.OrdinalIgnoreCase))
             {
+                if (TryConvertSingleCellTableAsQuote(node, context, headingInference, quoteDepth, out var quotedTable))
+                {
+                    blocks.Add(quotedTable);
+                    continue;
+                }
+
                 blocks.Add(ApplyQuotePrefix(ConvertTable(node, context), quoteDepth));
                 continue;
             }
@@ -203,6 +209,39 @@ internal static partial class MarkdownConverter
         }
 
         return string.Join("\n", lines.Where(line => !string.IsNullOrWhiteSpace(line)));
+    }
+
+    private static bool TryConvertSingleCellTableAsQuote(
+        HtmlNode tableNode,
+        ConversionContext context,
+        HeadingInference headingInference,
+        int quoteDepth,
+        out string markdown)
+    {
+        markdown = string.Empty;
+
+        var rows = tableNode.SelectNodes(".//tr");
+        if (rows is null || rows.Count != 1)
+        {
+            return false;
+        }
+
+        var cells = rows[0].Elements("th").Concat(rows[0].Elements("td")).ToList();
+        if (cells.Count != 1)
+        {
+            return false;
+        }
+
+        var cell = cells[0];
+        var blocks = ConvertBlocks(cell.ChildNodes, context, headingInference, quoteDepth + 1);
+        if (blocks.Count == 0)
+        {
+            var fallback = ConvertTextBlocks(ConvertInlines(cell, context), quoteDepth + 1, cell, headingInference);
+            blocks.AddRange(fallback);
+        }
+
+        markdown = string.Join("\n\n", blocks.Where(block => !string.IsNullOrWhiteSpace(block))).Trim();
+        return !string.IsNullOrWhiteSpace(markdown);
     }
 
     private static string ConvertTable(HtmlNode tableNode, ConversionContext context)

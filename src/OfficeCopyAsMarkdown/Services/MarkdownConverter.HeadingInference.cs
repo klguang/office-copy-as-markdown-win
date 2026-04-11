@@ -23,7 +23,7 @@ internal static partial class MarkdownConverter
                 return new HeadingInference(new Dictionary<HtmlNode, int>());
             }
 
-            AppLogger.Debug($"Heading analysis: candidate heading max levels = {candidateHeadingInference.EffectiveMaxLevels}.");
+            AppLogger.Debug($"Heading analysis: candidate heading max levels = {candidateHeadingInference.EffectiveMaxLevels}, sparse start level = {candidateHeadingInference.EffectiveSparseStartLevel}.");
 
             var bodyFontSamples = CollectBodyFontSizes(root);
             if (bodyFontSamples.Count == 0)
@@ -48,7 +48,10 @@ internal static partial class MarkdownConverter
             }
 
             var effectiveCandidates = baseCandidates
-                .Where(candidate => candidate.FontSizePt >= baseline + 2d || candidate.FontSizePt >= baseline * 1.15d)
+                .Where(candidate =>
+                    candidate.FontSizePt >= baseline + 2d ||
+                    candidate.FontSizePt >= baseline * 1.15d ||
+                    (candidate.IsBold && candidate.FontSizePt >= baseline))
                 .ToList();
             AppLogger.Debug($"Heading analysis: effective candidate count = {effectiveCandidates.Count}.");
             if (effectiveCandidates.Count == 0)
@@ -63,9 +66,13 @@ internal static partial class MarkdownConverter
                 .Take(candidateHeadingInference.EffectiveMaxLevels)
                 .ToList();
 
+            var levelOffset = orderedFontBands.Count < candidateHeadingInference.EffectiveMaxLevels
+                ? candidateHeadingInference.EffectiveSparseStartLevel - 1
+                : 0;
+
             var mappingDescription = orderedFontBands.Count == 0
                 ? "none"
-                : string.Join(", ", orderedFontBands.Select((size, levelIndex) => $"{size:F2}pt=>H{levelIndex + 1}"));
+                : string.Join(", ", orderedFontBands.Select((size, levelIndex) => $"{size:F2}pt=>H{levelIndex + 1 + levelOffset}"));
             AppLogger.Debug($"Heading analysis: font bands = {mappingDescription}.");
 
             var nodeLevels = new Dictionary<HtmlNode, int>();
@@ -74,7 +81,7 @@ internal static partial class MarkdownConverter
                 var bandIndex = orderedFontBands.FindIndex(size => Math.Abs(size - candidate.FontSizePt) < 0.01d);
                 if (bandIndex >= 0)
                 {
-                    nodeLevels[candidate.Node] = bandIndex + 1;
+                    nodeLevels[candidate.Node] = bandIndex + 1 + levelOffset;
                 }
             }
 
@@ -175,12 +182,12 @@ internal static partial class MarkdownConverter
                     continue;
                 }
 
-                candidates.Add(new HeadingCandidate(node, text, Math.Round(fontSizePt, 2)));
+                candidates.Add(new HeadingCandidate(node, text, Math.Round(fontSizePt, 2), IsEntireTextBold(node)));
             }
 
             return candidates;
         }
     }
 
-    private sealed record HeadingCandidate(HtmlNode Node, string Text, double FontSizePt);
+    private sealed record HeadingCandidate(HtmlNode Node, string Text, double FontSizePt, bool IsBold);
 }

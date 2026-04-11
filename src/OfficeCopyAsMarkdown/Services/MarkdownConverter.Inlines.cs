@@ -191,6 +191,60 @@ internal static partial class MarkdownConverter
             }
         }
 
+        normalized = BoldLabelSeparatedColonRegex.Replace(normalized, match =>
+        {
+            var label = match.Groups["label"].Value;
+            var colon = match.Groups["colon"].Value;
+            var next = match.Groups["next"].Value;
+            if (string.IsNullOrEmpty(label) || string.IsNullOrEmpty(colon) || string.IsNullOrEmpty(next))
+            {
+                return match.Value;
+            }
+
+            if (!ShouldInsertSpaceAfterBoldLabel(colon[0], next[0]))
+            {
+                return match.Value;
+            }
+
+            return $"**{label}{colon}** {next}";
+        });
+
+        normalized = BoldLabelFollowedByTextRegex.Replace(normalized, match =>
+        {
+            var label = match.Groups["label"].Value;
+            var next = match.Groups["next"].Value;
+            if (string.IsNullOrEmpty(label) || string.IsNullOrEmpty(next))
+            {
+                return match.Value;
+            }
+
+            if (!ShouldInsertSpaceAfterBoldLabel(label[^1], next[0]))
+            {
+                return match.Value;
+            }
+
+            return $"**{label}** {next}";
+        });
+
+        normalized = TextFollowedByBoldLabelRegex.Replace(normalized, match =>
+        {
+            var previous = match.Groups["prev"].Value;
+            var label = match.Groups["label"].Value;
+            if (string.IsNullOrEmpty(previous) || string.IsNullOrEmpty(label))
+            {
+                return match.Value;
+            }
+
+            if (!ShouldInsertSpaceBeforeBoldLabel(previous[0], label[0]))
+            {
+                return match.Value;
+            }
+
+            return $"{previous} **{label}**";
+        });
+
+        normalized = TightPlusBetweenWordsRegex.Replace(normalized, "${left} + ${right}");
+
         return normalized;
     }
 
@@ -232,6 +286,11 @@ internal static partial class MarkdownConverter
             return string.Empty;
         }
 
+        if (HasUnclosedOpeningPunctuation(left))
+        {
+            return string.Empty;
+        }
+
         if ((IsCjk(leftChar) && IsLatinOrDigit(rightChar)) ||
             (IsLatinOrDigit(leftChar) && IsCjk(rightChar)) ||
             (char.IsLetterOrDigit(leftChar) && char.IsLetterOrDigit(rightChar)))
@@ -240,6 +299,64 @@ internal static partial class MarkdownConverter
         }
 
         return string.Empty;
+    }
+
+    private static bool ShouldInsertSpaceAfterBoldLabel(char labelEnd, char nextChar)
+    {
+        if (labelEnd is not (':' or '\uFF1A'))
+        {
+            return false;
+        }
+
+        if (char.IsWhiteSpace(nextChar) ||
+            IsOpeningPunctuation(nextChar) ||
+            IsClosingPunctuation(nextChar) ||
+            IsSeparatorPunctuation(nextChar))
+        {
+            return false;
+        }
+
+        return IsCjk(nextChar) || IsLatinOrDigit(nextChar);
+    }
+
+    private static bool ShouldInsertSpaceBeforeBoldLabel(char previousChar, char labelStart)
+    {
+        if (!IsCjk(previousChar) && !IsLatinOrDigit(previousChar))
+        {
+            return false;
+        }
+
+        if (!IsCjk(labelStart) && !IsLatinOrDigit(labelStart))
+        {
+            return false;
+        }
+
+        if (IsOpeningPunctuation(previousChar) || IsSeparatorPunctuation(previousChar))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool HasUnclosedOpeningPunctuation(string text)
+    {
+        var depth = 0;
+        foreach (var ch in text)
+        {
+            if (IsOpeningPunctuation(ch))
+            {
+                depth++;
+                continue;
+            }
+
+            if (IsClosingPunctuation(ch) && depth > 0)
+            {
+                depth--;
+            }
+        }
+
+        return depth > 0;
     }
 
     private static bool IsCjk(char value) => value is >= '\u4E00' and <= '\u9FFF';
