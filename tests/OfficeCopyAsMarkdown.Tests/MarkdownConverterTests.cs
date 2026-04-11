@@ -94,6 +94,9 @@ public sealed class MarkdownConverterTests
         Assert.Contains("## 正式标题", markdown);
         Assert.Contains("大字号候选", markdown);
         Assert.DoesNotContain("# 大字号候选", markdown);
+        Assert.DoesNotContain("## 大字号候选", markdown);
+        Assert.DoesNotContain("### 大字号候选", markdown);
+        Assert.DoesNotContain("#### 大字号候选", markdown);
     }
 
     [Fact]
@@ -102,9 +105,10 @@ public sealed class MarkdownConverterTests
         const string html = """
             <html>
             <body>
-              <div><span style="font-size:18pt;font-weight:bold;">主标题</span></div>
-              <div><span style="font-size:16pt;font-weight:bold;">次标题</span></div>
-              <div><span style="font-size:14pt;font-weight:bold;">三级标题</span></div>
+              <div><span style="font-size:20pt;font-weight:bold;">主标题</span></div>
+              <div><span style="font-size:18pt;font-weight:bold;">次标题</span></div>
+              <div><span style="font-size:16pt;font-weight:bold;">三级标题</span></div>
+              <div><span style="font-size:14pt;font-weight:bold;">四级标题</span></div>
               <p><span style="font-size:12pt;">正文内容</span></p>
               <p><span style="font-size:12pt;">第二段正文</span></p>
               <p><span style="font-size:12pt;">第三段正文</span></p>
@@ -117,6 +121,7 @@ public sealed class MarkdownConverterTests
         Assert.Contains("# 主标题", markdown);
         Assert.Contains("## 次标题", markdown);
         Assert.Contains("### 三级标题", markdown);
+        Assert.Contains("#### 四级标题", markdown);
         Assert.Contains("正文内容", markdown);
     }
 

@@ -167,7 +167,7 @@ internal static partial class MarkdownConverter
             .Replace('\u00A0', ' ')
             .Replace('\u200B', ' ');
 
-        return WhitespaceRegex.Replace(normalized, " ");
+        return MarkdownLineSyntax.NormalizeWhitespace(normalized);
     }
 
     private static string NormalizeInlineResult(string text)

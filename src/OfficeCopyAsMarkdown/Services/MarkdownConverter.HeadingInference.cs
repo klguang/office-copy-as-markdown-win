@@ -13,7 +13,7 @@ internal static partial class MarkdownConverter
             _nodeLevels = nodeLevels;
         }
 
-        public static HeadingInference Analyze(HtmlNode root)
+        public static HeadingInference Analyze(HtmlNode root, CandidateHeadingInferenceOptions candidateHeadingInference)
         {
             var hasSemanticHeading = root.DescendantsAndSelf().Any(node => TryGetSemanticHeadingLevel(node, out _));
             AppLogger.Debug($"Heading analysis: semantic heading present = {hasSemanticHeading}.");
@@ -22,6 +22,8 @@ internal static partial class MarkdownConverter
                 AppLogger.Debug("Heading analysis: semantic heading detected, candidate heading inference disabled for the entire fragment.");
                 return new HeadingInference(new Dictionary<HtmlNode, int>());
             }
+
+            AppLogger.Debug($"Heading analysis: candidate heading max levels = {candidateHeadingInference.EffectiveMaxLevels}.");
 
             var bodyFontSamples = CollectBodyFontSizes(root);
             if (bodyFontSamples.Count == 0)
@@ -58,7 +60,7 @@ internal static partial class MarkdownConverter
                 .Select(candidate => candidate.FontSizePt)
                 .Distinct()
                 .OrderByDescending(size => size)
-                .Take(3)
+                .Take(candidateHeadingInference.EffectiveMaxLevels)
                 .ToList();
 
             var mappingDescription = orderedFontBands.Count == 0

@@ -5,11 +5,8 @@ namespace OfficeCopyAsMarkdown.Services;
 internal static partial class MarkdownConverter
 {
     private const int MaximumCandidateHeadingLength = 20;
+    private static readonly CandidateHeadingInferenceOptions CandidateHeadingInference = new(4);
     private static readonly char[] DisallowedHeadingTerminators = ['\u3002', '.', '\uFF0C', ',', '\uFF1B', ';'];
-    private static readonly Regex WhitespaceRegex = new(@"\s+", RegexOptions.Compiled);
-    private static readonly Regex CheckboxRegex = new(@"^(?<box>[\u2610\u2611\u2612])\s*(?<text>.+)$", RegexOptions.Compiled);
-    private static readonly Regex OrderedListRegex = new(@"^(?<marker>(\d+|[A-Za-z]+)[\.\)])\s+(?<text>.+)$", RegexOptions.Compiled);
-    private static readonly Regex BulletListRegex = new(@"^(?<marker>[\u2022\u00B7\u25CB\u25E6\u25CFo\-*])\s+(?<text>.+)$", RegexOptions.Compiled);
     private static readonly Regex HeadingStyleRegex = new(@"mso-style-name:\s*[""']?Heading\s*(?<level>\d)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex HeadingClassRegex = new(@"Heading(?<level>\d)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex OfficeLevelRegex = new(@"level(?<level>\d+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -31,7 +28,7 @@ internal static partial class MarkdownConverter
 
         var root = document.DocumentNode.SelectSingleNode("//body") ?? document.DocumentNode;
         var context = new ConversionContext(fallbackImagePng, root.SelectNodes(".//img")?.Count ?? 0);
-        var headingInference = HeadingInference.Analyze(root);
+        var headingInference = HeadingInference.Analyze(root, CandidateHeadingInference);
         var blocks = ConvertBlocks(root.ChildNodes, context, headingInference, 0);
         var markdown = string.Join("\n\n", blocks.Where(block => !string.IsNullOrWhiteSpace(block))).Trim();
 
@@ -42,5 +39,10 @@ internal static partial class MarkdownConverter
         }
 
         return markdown;
+    }
+
+    private sealed record CandidateHeadingInferenceOptions(int MaxLevels)
+    {
+        public int EffectiveMaxLevels => Math.Max(1, MaxLevels);
     }
 }

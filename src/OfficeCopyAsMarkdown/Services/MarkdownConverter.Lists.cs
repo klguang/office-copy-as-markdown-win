@@ -58,11 +58,9 @@ internal static partial class MarkdownConverter
 
     private static bool TryConvertTaskLine(string text, out string markdown)
     {
-        var match = CheckboxRegex.Match(text);
-        if (match.Success)
+        if (MarkdownLineSyntax.TryParseSourceTask(text, out var content, out var isChecked))
         {
-            var marker = match.Groups["box"].Value is "\u2611" or "\u2612" ? "[x]" : "[ ]";
-            markdown = $"- {marker} {match.Groups["text"].Value.Trim()}";
+            markdown = MarkdownLineSyntax.RenderMarkdownTask(content, isChecked);
             return true;
         }
 
@@ -72,10 +70,9 @@ internal static partial class MarkdownConverter
 
     private static bool TryConvertLooseOrderedLine(string text, out string markdown)
     {
-        var match = OrderedListRegex.Match(text);
-        if (match.Success)
+        if (MarkdownLineSyntax.TryParseSourceOrderedListItem(text, out var marker, out var content))
         {
-            markdown = $"{match.Groups["marker"].Value} {match.Groups["text"].Value.Trim()}";
+            markdown = MarkdownLineSyntax.RenderMarkdownOrderedListItem(marker, content);
             return true;
         }
 
@@ -85,10 +82,9 @@ internal static partial class MarkdownConverter
 
     private static bool TryConvertLooseBulletLine(string text, out string markdown)
     {
-        var match = BulletListRegex.Match(text);
-        if (match.Success)
+        if (MarkdownLineSyntax.TryParseSourceBulletListItem(text, out var content))
         {
-            markdown = $"- {match.Groups["text"].Value.Trim()}";
+            markdown = MarkdownLineSyntax.RenderMarkdownBulletListItem(content);
             return true;
         }
 
@@ -121,6 +117,6 @@ internal static partial class MarkdownConverter
         var isChecked = checkboxNode.Attributes["checked"] is not null ||
             checkboxNode.GetAttributeValue("aria-checked", string.Empty).Equals("true", StringComparison.OrdinalIgnoreCase);
 
-        return isChecked ? "[x]" : "[ ]";
+        return MarkdownLineSyntax.RenderMarkdownTaskMarker(isChecked);
     }
 }

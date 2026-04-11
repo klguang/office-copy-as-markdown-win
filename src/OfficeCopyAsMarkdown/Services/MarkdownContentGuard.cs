@@ -9,14 +9,8 @@ internal static class MarkdownContentGuard
     private static readonly Regex MarkdownImageRegex = new(@"!\[(?<alt>[^\]]*)\]\([^)]+\)", RegexOptions.Compiled);
     private static readonly Regex MarkdownLinkRegex = new(@"\[(?<text>[^\]]+)\]\([^)]+\)", RegexOptions.Compiled);
     private static readonly Regex MarkdownDecorationRegex = new(@"(\*\*|__|~~|`)", RegexOptions.Compiled);
-    private static readonly Regex MarkdownPrefixRegex = new(@"^(>+\s*)?(#{1,6}\s+)?((\d+|[A-Za-z]+)[\.\)]\s+|[-*+]\s+)?(\[[ xX]\]\s+)?", RegexOptions.Compiled);
-    private static readonly Regex SourcePrefixRegex = new(@"^((\d+|[A-Za-z]+)[\.\)]\s+|[\u2022\u00B7\u25CB\u25E6\u25CFo\-*]\s+|[\u2610\u2611\u2612]\s+)+", RegexOptions.Compiled);
-    private static readonly Regex OrderedListRegex = new(@"^(?<marker>(\d+|[A-Za-z]+)[\.\)])\s+(?<text>.+)$", RegexOptions.Compiled);
-    private static readonly Regex BulletListRegex = new(@"^(?<marker>[\u2022\u00B7\u25CB\u25E6\u25CFo\-*])\s+(?<text>.+)$", RegexOptions.Compiled);
-    private static readonly Regex CheckboxRegex = new(@"^(?<box>[\u2610\u2611\u2612])\s*(?<text>.+)$", RegexOptions.Compiled);
     private static readonly Regex MarkdownHeadingRegex = new(@"^\s*#{1,6}\s+", RegexOptions.Compiled);
     private static readonly Regex MarkdownTableSeparatorRegex = new(@"^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$", RegexOptions.Compiled);
-    private static readonly Regex WhitespaceRegex = new(@"\s+", RegexOptions.Compiled);
 
     public static MarkdownRepairResult RepairMarkdown(string markdown, string? sourceText)
     {
@@ -182,9 +176,9 @@ internal static class MarkdownContentGuard
         if (targetIndex > 0 &&
             !string.IsNullOrWhiteSpace(markdownLines[targetIndex - 1]) &&
             !MarkdownHeadingRegex.IsMatch(markdownLines[targetIndex - 1]) &&
-            !OrderedListRegex.IsMatch(markdownLines[targetIndex - 1].TrimStart()) &&
-            !BulletListRegex.IsMatch(markdownLines[targetIndex - 1].TrimStart()) &&
-            !markdownLines[targetIndex - 1].TrimStart().StartsWith("- [", StringComparison.Ordinal))
+            !MarkdownLineSyntax.LooksLikeOrderedListItem(markdownLines[targetIndex - 1]) &&
+            !MarkdownLineSyntax.LooksLikeBulletListItem(markdownLines[targetIndex - 1]) &&
+            !MarkdownLineSyntax.LooksLikeTaskListItem(markdownLines[targetIndex - 1]))
         {
             markdownLines.Insert(targetIndex, string.Empty);
             targetIndex++;
@@ -274,27 +268,21 @@ internal static class MarkdownContentGuard
                 continue;
             }
 
-            if (CheckboxRegex.Match(trimmed) is { Success: true } checkboxMatch)
+            if (MarkdownLineSyntax.TryParseSourceTask(trimmed, out var taskContent, out var isChecked))
             {
-                var content = checkboxMatch.Groups["text"].Value.Trim();
-                var comparable = NormalizeComparableText(content);
-                var isChecked = checkboxMatch.Groups["box"].Value is "\u2611" or "\u2612";
-                lines.Add(new SourceLine(trimmed, comparable, SourceLineKind.Task, string.Empty, content, isChecked));
+                lines.Add(new SourceLine(trimmed, NormalizeComparableText(taskContent), SourceLineKind.Task, string.Empty, taskContent, isChecked));
                 continue;
             }
 
-            if (OrderedListRegex.Match(trimmed) is { Success: true } orderedMatch)
+            if (MarkdownLineSyntax.TryParseSourceOrderedListItem(trimmed, out var marker, out var orderedContent))
             {
-                var marker = orderedMatch.Groups["marker"].Value;
-                var content = orderedMatch.Groups["text"].Value.Trim();
-                lines.Add(new SourceLine(trimmed, NormalizeComparableText(content), SourceLineKind.Ordered, marker, content, IsChecked: false));
+                lines.Add(new SourceLine(trimmed, NormalizeComparableText(orderedContent), SourceLineKind.Ordered, marker, orderedContent, IsChecked: false));
                 continue;
             }
 
-            if (BulletListRegex.Match(trimmed) is { Success: true } bulletMatch)
+            if (MarkdownLineSyntax.TryParseSourceBulletListItem(trimmed, out var bulletContent))
             {
-                var content = bulletMatch.Groups["text"].Value.Trim();
-                lines.Add(new SourceLine(trimmed, NormalizeComparableText(content), SourceLineKind.Bullet, "-", content, IsChecked: false));
+                lines.Add(new SourceLine(trimmed, NormalizeComparableText(bulletContent), SourceLineKind.Bullet, "-", bulletContent, IsChecked: false));
                 continue;
             }
 
@@ -308,9 +296,9 @@ internal static class MarkdownContentGuard
     {
         return sourceLine.Kind switch
         {
-            SourceLineKind.Task => $"- [{(sourceLine.IsChecked ? "x" : " ")}] {sourceLine.Content}",
-            SourceLineKind.Ordered => $"{sourceLine.Marker} {sourceLine.Content}",
-            SourceLineKind.Bullet => $"- {sourceLine.Content}",
+            SourceLineKind.Task => MarkdownLineSyntax.RenderMarkdownTask(sourceLine.Content, sourceLine.IsChecked),
+            SourceLineKind.Ordered => MarkdownLineSyntax.RenderMarkdownOrderedListItem(sourceLine.Marker, sourceLine.Content),
+            SourceLineKind.Bullet => MarkdownLineSyntax.RenderMarkdownBulletListItem(sourceLine.Content),
             _ => sourceLine.Content
         };
     }
@@ -329,8 +317,8 @@ internal static class MarkdownContentGuard
         }
 
         trimmed = isMarkdown
-            ? MarkdownPrefixRegex.Replace(trimmed, string.Empty)
-            : SourcePrefixRegex.Replace(trimmed, string.Empty);
+            ? MarkdownLineSyntax.StripMarkdownPrefix(trimmed)
+            : MarkdownLineSyntax.StripSourcePrefix(trimmed);
 
         return NormalizeComparableText(trimmed);
     }
@@ -343,13 +331,13 @@ internal static class MarkdownContentGuard
             .Replace("—", "-", StringComparison.Ordinal)
             .Replace("＋", "+", StringComparison.Ordinal);
 
-        normalized = WhitespaceRegex.Replace(normalized, " ");
+        normalized = MarkdownLineSyntax.NormalizeWhitespace(normalized);
         normalized = Regex.Replace(normalized, @"\s*(->)\s*", " $1 ");
         normalized = Regex.Replace(normalized, @"\s*([/:：+])\s*", "$1");
         normalized = Regex.Replace(normalized, @"(?<=[\u4E00-\u9FFF])\s+(?=[A-Za-z0-9])", string.Empty);
         normalized = Regex.Replace(normalized, @"(?<=[A-Za-z0-9])\s+(?=[\u4E00-\u9FFF])", string.Empty);
         normalized = Regex.Replace(normalized, @"(?<=[\u4E00-\u9FFF])\s+(?=[\u4E00-\u9FFF])", string.Empty);
-        normalized = WhitespaceRegex.Replace(normalized, " ");
+        normalized = MarkdownLineSyntax.NormalizeWhitespace(normalized);
         return normalized.Trim();
     }
 
