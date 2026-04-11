@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OfficeCopyAsMarkdown/OfficeCopyAsMarkdown.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OfficeCopyAsMarkdown.Tests/OfficeCopyAsMarkdown.Tests.csproj" />
+  </Folder>
+</Solution>
