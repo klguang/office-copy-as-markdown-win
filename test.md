@@ -1,4 +1,4 @@
-**验收标准（**EARS **语法）**
+## 验收标准（EARS 语法）
 
 - WHEN 用户提交正确的注册信息 THEN 系统创建账号、发送验证邮件、返回JWT token。 - WHEN 邮箱已存在 THEN 返回 409 Conflict + "邮箱已被注册"。
 

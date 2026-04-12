@@ -187,12 +187,13 @@ internal static partial class MarkdownConverter
         return text.Trim();
     }
 
-    private static bool IsEntireTextBold(HtmlNode node)
+    internal static bool IsMostlyBold(HtmlNode node)
     {
         var textNodes = node
             .DescendantsAndSelf()
             .Where(candidate => candidate.NodeType == HtmlNodeType.Text)
-            .Where(candidate => !string.IsNullOrWhiteSpace(NormalizeInlineText(WebUtility.HtmlDecode(candidate.InnerText))))
+            .Select(candidate => new { Node = candidate, Text = NormalizeInlineText(WebUtility.HtmlDecode(candidate.InnerText)).Trim() })
+            .Where(candidate => !string.IsNullOrWhiteSpace(candidate.Text))
             .ToList();
 
         if (textNodes.Count == 0)
@@ -200,10 +201,14 @@ internal static partial class MarkdownConverter
             return false;
         }
 
+        var totalLength = 0;
+        var boldLength = 0;
+
         foreach (var textNode in textNodes)
         {
+            totalLength += textNode.Text.Length;
             var isBold = false;
-            for (var current = textNode.ParentNode; current is not null; current = current.ParentNode)
+            for (var current = textNode.Node.ParentNode; current is not null; current = current.ParentNode)
             {
                 if (IsBoldElement(current))
                 {
@@ -217,13 +222,13 @@ internal static partial class MarkdownConverter
                 }
             }
 
-            if (!isBold)
+            if (isBold)
             {
-                return false;
+                boldLength += textNode.Text.Length;
             }
         }
 
-        return true;
+        return boldLength > 0 && boldLength >= totalLength / 2;
     }
 
     private static bool HasBlockedAncestor(HtmlNode node)

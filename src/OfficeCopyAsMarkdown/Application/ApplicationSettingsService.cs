@@ -27,7 +27,7 @@ internal sealed class ApplicationSettingsService
 
         try
         {
-            var json = File.ReadAllText(SettingsFilePath);
+            var json = File.ReadAllText(SettingsFilePath, System.Text.Encoding.UTF8);
             var settings = JsonSerializer.Deserialize<AppSettings>(json, SerializerOptions);
             string? error = null;
             if (settings?.Hotkey.TryToGesture(out _, out error) == true)

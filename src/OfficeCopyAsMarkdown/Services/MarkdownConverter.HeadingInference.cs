@@ -182,7 +182,7 @@ internal static partial class MarkdownConverter
                     continue;
                 }
 
-                candidates.Add(new HeadingCandidate(node, text, Math.Round(fontSizePt, 2), IsEntireTextBold(node)));
+                candidates.Add(new HeadingCandidate(node, text, Math.Round(fontSizePt, 2), IsMostlyBold(node)));
             }
 
             return candidates;

@@ -9,7 +9,7 @@ public sealed class MarkdownConverterTests
     public void Convert_PreservesInlineSequencesInsideStructuralContainers()
     {
         var fixturePath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "OneNoteUserJourney.html");
-        var html = File.ReadAllText(fixturePath);
+        var html = File.ReadAllText(fixturePath, System.Text.Encoding.UTF8);
 
         var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
 
@@ -20,7 +20,7 @@ public sealed class MarkdownConverterTests
     public void Convert_PreservesProgramLogHtmlFixture()
     {
         var fixturePath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "OneNoteUserJourneyFromLog.html");
-        var html = File.ReadAllText(fixturePath);
+        var html = File.ReadAllText(fixturePath, System.Text.Encoding.UTF8);
 
         var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
 
@@ -340,6 +340,23 @@ public sealed class MarkdownConverterTests
         var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
 
         Assert.Contains("**阶段：** MVP **目标用户：** UGC创作者 + 碎片化自学学习者 **核心价值：** 支持用户创建官方模板卡片", markdown);
+    }
+
+    [Fact]
+    public void Convert_InfersHeadingWhenTextIsMostlyBold()
+    {
+        const string html = """
+            <html>
+            <body>
+              <p><span style="font-size:12pt;font-weight:bold;">验收标准（</span><span style="font-size:12pt;">EARS</span><span style="font-size:12pt;font-weight:bold;">语法）</span></p>
+              <p><span style="font-size:12pt;">- WHEN 用户提交正确的注册信息 THEN 系统创建账号、发送验证邮件、返回JWT token。</span></p>
+            </body>
+            </html>
+            """;
+
+        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
+
+        Assert.Contains("## 验收标准（EARS 语法）", markdown);
     }
 
     [Fact]
