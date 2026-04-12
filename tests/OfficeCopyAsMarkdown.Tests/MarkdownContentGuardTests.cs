@@ -1,4 +1,4 @@
-using OfficeCopyAsMarkdown.Services;
+using Html2Markdown;
 
 namespace OfficeCopyAsMarkdown.Tests;
 
@@ -29,7 +29,7 @@ public sealed class MarkdownContentGuardTests
             2. **获取**：
             """;
 
-        Assert.False(MarkdownContentGuard.ShouldKeepMarkdown(markdown, sourceText));
+        Assert.False(HtmlToMarkdownPipeline.ShouldKeepMarkdown(markdown, sourceText));
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class MarkdownContentGuardTests
             - 浏览合集库 -> 查看合集信息（封面、简介、是否公开/免费）
             """;
 
-        Assert.True(MarkdownContentGuard.ShouldKeepMarkdown(markdown, sourceText));
+        Assert.True(HtmlToMarkdownPipeline.ShouldKeepMarkdown(markdown, sourceText));
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public sealed class MarkdownContentGuardTests
             1. **发现**：
             """;
 
-        var repaired = MarkdownContentGuard.RepairMarkdown(markdown, sourceText);
+        var repaired = HtmlToMarkdownPipeline.RepairMarkdown(markdown, sourceText);
 
         Assert.True(repaired.IsComplete);
         Assert.Contains("- 浏览合集库 -> 查看合集信息（封面、简介、是否公开/免费）", repaired.Markdown);
@@ -89,7 +89,7 @@ public sealed class MarkdownContentGuardTests
             ○ 浏览合集库 -> 查看合集信息（封面、简介、是否公开/免费）
             """;
 
-        var markdown = MarkdownContentGuard.BuildConservativeMarkdown(sourceText);
+        var markdown = HtmlToMarkdownPipeline.BuildConservativeMarkdown(sourceText);
 
         Assert.Contains("用户路径", markdown);
         Assert.Contains("2.1 学习者路径", markdown);
@@ -111,9 +111,9 @@ public sealed class MarkdownContentGuardTests
             | Member | 平台统一用户角色，既可以创建卡片/合集（创作者），也可以学习/收藏（学习者） |
             """;
 
-        Assert.True(MarkdownContentGuard.ShouldKeepMarkdown(markdown, sourceText));
+        Assert.True(HtmlToMarkdownPipeline.ShouldKeepMarkdown(markdown, sourceText));
 
-        var repaired = MarkdownContentGuard.RepairMarkdown(markdown, sourceText);
+        var repaired = HtmlToMarkdownPipeline.RepairMarkdown(markdown, sourceText);
 
         Assert.True(repaired.IsComplete);
         Assert.Equal(markdown, repaired.Markdown);
@@ -128,12 +128,12 @@ public sealed class MarkdownContentGuardTests
             """;
 
         const string markdown = """
-            **阶段**：MVP**目标用户**：UGC创作者+碎片化自学学习者**核心价值**：支持用户创建官方模板卡片、组织合集与章节、制定学习计划、个性化笔记及收藏
+            **阶段：** MVP **目标用户：** UGC创作者 + 碎片化自学学习者 **核心价值：** 支持用户创建官方模板卡片、组织合集与章节、制定学习计划、个性化笔记及收藏
             """;
 
-        Assert.True(MarkdownContentGuard.ShouldKeepMarkdown(markdown, sourceText));
+        Assert.True(HtmlToMarkdownPipeline.ShouldKeepMarkdown(markdown, sourceText));
 
-        var repaired = MarkdownContentGuard.RepairMarkdown(markdown, sourceText);
+        var repaired = HtmlToMarkdownPipeline.RepairMarkdown(markdown, sourceText);
 
         Assert.True(repaired.IsComplete);
         Assert.Equal(markdown, repaired.Markdown);

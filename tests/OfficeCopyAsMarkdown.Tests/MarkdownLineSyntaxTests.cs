@@ -1,4 +1,4 @@
-using OfficeCopyAsMarkdown.Services;
+using Html2Markdown;
 
 namespace OfficeCopyAsMarkdown.Tests;
 

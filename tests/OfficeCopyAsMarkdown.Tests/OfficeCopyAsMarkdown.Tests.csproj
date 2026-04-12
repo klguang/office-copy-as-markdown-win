@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Html2Markdown\Html2Markdown.csproj" />
     <ProjectReference Include="..\..\src\OfficeCopyAsMarkdown\OfficeCopyAsMarkdown.csproj" />
   </ItemGroup>
 

@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Html2Markdown/Html2Markdown.csproj" />
     <Project Path="src/OfficeCopyAsMarkdown/OfficeCopyAsMarkdown.csproj" />
   </Folder>
   <Folder Name="/tests/">

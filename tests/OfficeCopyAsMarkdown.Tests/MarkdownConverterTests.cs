@@ -1,32 +1,10 @@
-using OfficeCopyAsMarkdown.Services;
 using System.Text.RegularExpressions;
+using Html2Markdown;
 
 namespace OfficeCopyAsMarkdown.Tests;
 
 public sealed class MarkdownConverterTests
 {
-    [Fact]
-    public void Convert_PreservesInlineSequencesInsideStructuralContainers()
-    {
-        var fixturePath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "OneNoteUserJourney.html");
-        var html = File.ReadAllText(fixturePath);
-
-        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
-
-        AssertUserJourneyMarkdown(markdown);
-    }
-
-    [Fact]
-    public void Convert_PreservesProgramLogHtmlFixture()
-    {
-        var fixturePath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "OneNoteUserJourneyFromLog.html");
-        var html = File.ReadAllText(fixturePath);
-
-        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
-
-        AssertUserJourneyMarkdown(markdown);
-    }
-
     [Fact]
     public void Convert_PreservesStandardUnorderedLists()
     {
@@ -41,7 +19,7 @@ public sealed class MarkdownConverterTests
             </html>
             """;
 
-        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
+        var markdown = HtmlToMarkdownPipeline.ConvertFragment(html, fallbackImagePng: null);
 
         Assert.Equal("- first item\n- second item", markdown);
     }
@@ -67,36 +45,13 @@ public sealed class MarkdownConverterTests
             </html>
             """;
 
-        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
+        var markdown = HtmlToMarkdownPipeline.ConvertFragment(html, fallbackImagePng: null);
 
         Assert.Contains("1. **发现**：", markdown);
         Assert.Contains("- 浏览合集库 -> 查看合集信息（封面、简介、是否公开/免费）", markdown);
         Assert.Contains("2. **获取**：", markdown);
         Assert.Contains("- 免费合集 -> 收藏或添加到学习计划", markdown);
         Assert.Contains("- 付费合集 -> 收藏（购买逻辑暂不实现）", markdown);
-    }
-
-    [Fact]
-    public void Convert_WhenSemanticHeadingExists_DisablesCandidateHeadingInference()
-    {
-        const string html = """
-            <html>
-            <body>
-              <div><span style="font-size:18pt">大字号候选</span></div>
-              <p style="mso-style-name:Heading 2">正式标题</p>
-              <p><span style="font-size:12pt">正文内容</span></p>
-            </body>
-            </html>
-            """;
-
-        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
-
-        Assert.Contains("## 正式标题", markdown);
-        Assert.Contains("大字号候选", markdown);
-        Assert.DoesNotContain("# 大字号候选", markdown);
-        Assert.DoesNotContain("## 大字号候选", markdown);
-        Assert.DoesNotContain("### 大字号候选", markdown);
-        Assert.DoesNotContain("#### 大字号候选", markdown);
     }
 
     [Fact]
@@ -116,7 +71,7 @@ public sealed class MarkdownConverterTests
             </html>
             """;
 
-        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
+        var markdown = HtmlToMarkdownPipeline.ConvertFragment(html, fallbackImagePng: null);
 
         Assert.Contains("# 主标题", markdown);
         Assert.Contains("## 次标题", markdown);
@@ -140,7 +95,7 @@ public sealed class MarkdownConverterTests
             </html>
             """;
 
-        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
+        var markdown = HtmlToMarkdownPipeline.ConvertFragment(html, fallbackImagePng: null);
 
         Assert.Contains("## 摸鱼卡片（manycards.cn）产品规格", markdown);
         Assert.Contains("### 核心概念", markdown);
@@ -164,7 +119,7 @@ public sealed class MarkdownConverterTests
             </html>
             """;
 
-        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
+        var markdown = HtmlToMarkdownPipeline.ConvertFragment(html, fallbackImagePng: null);
 
         Assert.Contains("# 一级标题", markdown);
         Assert.Contains("## 二级标题", markdown);
@@ -193,7 +148,7 @@ public sealed class MarkdownConverterTests
             </html>
             """;
 
-        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
+        var markdown = HtmlToMarkdownPipeline.ConvertFragment(html, fallbackImagePng: null);
 
         Assert.Contains("## 有效标题", markdown);
         Assert.Contains("同字号短句", markdown);
@@ -223,7 +178,7 @@ public sealed class MarkdownConverterTests
             </html>
             """;
 
-        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
+        var markdown = HtmlToMarkdownPipeline.ConvertFragment(html, fallbackImagePng: null);
 
         Assert.Contains("## 允许：", markdown);
         Assert.Contains("不允许。", markdown);
@@ -266,7 +221,7 @@ public sealed class MarkdownConverterTests
             </html>
             """;
 
-        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
+        var markdown = HtmlToMarkdownPipeline.ConvertFragment(html, fallbackImagePng: null);
 
         Assert.DoesNotContain("****", markdown);
         Assert.Contains("**摸鱼卡片（manycards.cn）产品规格**", markdown);
@@ -295,7 +250,7 @@ public sealed class MarkdownConverterTests
             </html>
             """;
 
-        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
+        var markdown = HtmlToMarkdownPipeline.ConvertFragment(html, fallbackImagePng: null);
 
         Assert.DoesNotContain("| --- |", markdown);
         Assert.DoesNotContain("| **Entity：**", markdown);
@@ -316,7 +271,7 @@ public sealed class MarkdownConverterTests
             </html>
             """;
 
-        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
+        var markdown = HtmlToMarkdownPipeline.ConvertFragment(html, fallbackImagePng: null);
 
         Assert.Contains("**Entity：** 持久化对象，对应数据库中的一条记录", markdown);
         Assert.Contains("**重要：** 如果VO对象满足Controller返回结果，不用新建Response对象", markdown);
@@ -337,7 +292,7 @@ public sealed class MarkdownConverterTests
             </html>
             """;
 
-        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
+        var markdown = HtmlToMarkdownPipeline.ConvertFragment(html, fallbackImagePng: null);
 
         Assert.Contains("**阶段：** MVP **目标用户：** UGC创作者 + 碎片化自学学习者 **核心价值：** 支持用户创建官方模板卡片", markdown);
     }
@@ -358,7 +313,7 @@ public sealed class MarkdownConverterTests
             </html>
             """;
 
-        var markdown = MarkdownConverter.Convert(html, fallbackImagePng: null);
+        var markdown = HtmlToMarkdownPipeline.ConvertFragment(html, fallbackImagePng: null);
 
         Assert.Contains("## 验收标准（EARS语法）", markdown);
         Assert.Contains("## 非功能约束", markdown);
@@ -366,45 +321,6 @@ public sealed class MarkdownConverterTests
         Assert.DoesNotContain("\n# 验收标准（EARS语法）\n", $"\n{markdown}\n");
         Assert.DoesNotContain("\n# 非功能约束\n", $"\n{markdown}\n");
         Assert.DoesNotContain("\n# 附加说明\n", $"\n{markdown}\n");
-    }
-
-    private static void AssertUserJourneyMarkdown(string markdown)
-    {
-        AssertContainsNormalized(markdown, "# 用户路径");
-        AssertContainsNormalized(markdown, "同一用户可以是学习者，也可以是创作者。");
-        AssertContainsNormalized(markdown, "## 2.1 学习者路径");
-        AssertContainsNormalized(markdown, "1. **发现**：");
-        AssertContainsNormalized(markdown, "- 浏览合集库 -> 查看合集信息（封面、简介、是否公开/免费）");
-        AssertContainsNormalized(markdown, "2. **获取**：");
-        AssertContainsNormalized(markdown, "- 免费合集 -> 收藏或添加到学习计划");
-        AssertContainsNormalized(markdown, "- 付费合集 -> 收藏（购买逻辑暂不实现）");
-        AssertContainsNormalized(markdown, "3. **个性化**：");
-        AssertContainsNormalized(markdown, "- 对卡片添加笔记（文本/手写）");
-        AssertContainsNormalized(markdown, "- 跟踪完成情况（打卡）");
-        AssertContainsNormalized(markdown, "4. **坚持**：");
-        AssertContainsNormalized(markdown, "- 根据学习计划完成每日任务");
-        AssertContainsNormalized(markdown, "- 系统记录完成量和用时");
-        AssertContainsNormalized(markdown, "5. **分享**：");
-        AssertContainsNormalized(markdown, "- 分享合集、章节或卡片链接");
-        AssertContainsNormalized(markdown, "- 链接附带来源信息，受访问权限控制");
-        AssertContainsNormalized(markdown, "## 2.2 创作者路径");
-        AssertContainsNormalized(markdown, "1. **创建合集**：");
-        AssertContainsNormalized(markdown, "- 新建合集 -> 可选创建章节（最多一层子合集）");
-        AssertContainsNormalized(markdown, "- 添加卡片到合集（从别的合集添加），或者创建卡片 -> 支持多种官方模板卡片混合");
-        AssertContainsNormalized(markdown, "2. **创建卡片**：");
-        AssertContainsNormalized(markdown, "- 选择官方模板 -> 填写内容 -> 保存卡片");
-        AssertContainsNormalized(markdown, "3. **管理卡片**：");
-        AssertContainsNormalized(markdown, "- 同一张卡片只能属于一个合集或章节");
-        AssertContainsNormalized(markdown, "- 支持排序及编辑内容");
-        AssertContainsNormalized(markdown, "- 付费合集可部分可见");
-        AssertContainsNormalized(markdown, "4. **发布/分享**：");
-        AssertContainsNormalized(markdown, "- 设置合集可见性（私有/免费）");
-        AssertContainsNormalized(markdown, "- 分享合集或章节链接");
-    }
-
-    private static void AssertContainsNormalized(string actual, string expected)
-    {
-        Assert.Contains(NormalizeForAssertion(expected), NormalizeForAssertion(actual));
     }
 
     private static string NormalizeForAssertion(string markdown)

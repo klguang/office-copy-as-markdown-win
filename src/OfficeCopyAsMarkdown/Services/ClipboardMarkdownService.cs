@@ -1,5 +1,5 @@
 using System.Drawing.Imaging;
-using System.Text;
+using Html2Markdown;
 
 namespace OfficeCopyAsMarkdown.Services;
 
@@ -151,36 +151,24 @@ internal sealed class ClipboardMarkdownService
     {
         if (!string.IsNullOrWhiteSpace(snapshot.Html))
         {
-            var fragment = CfHtmlExtractor.ExtractFragment(snapshot.Html!);
+            var fragment = HtmlToMarkdownPipeline.ExtractFragment(snapshot.Html!);
             AppLogger.Debug($"Extracted HTML fragment. Length={fragment.Length}.");
-            HtmlStructureLogger.LogFragmentStructure(fragment);
-            var markdown = MarkdownConverter.Convert(fragment, snapshot.ImagePng);
+            var normalizedFragment = OfficeHtmlNormalizer.Normalize(fragment);
+            var markdown = HtmlToMarkdownConverter.Convert(
+                normalizedFragment,
+                new HtmlToMarkdownOptions
+                {
+                    FallbackImagePng = snapshot.ImagePng,
+                    SourceText = snapshot.Text,
+                    RepairMode = HtmlToMarkdownRepairMode.IfSourceTextAvailable,
+                    DialectAdapter = OfficeHtmlDialectAdapter.Instance,
+                    Log = ForwardHtmlToMarkdownLog
+                });
+
             if (!string.IsNullOrWhiteSpace(markdown))
             {
-                var repaired = MarkdownContentGuard.RepairMarkdown(markdown, snapshot.Text);
-                if (repaired.IsComplete)
-                {
-                    if (!string.Equals(repaired.Markdown, markdown, StringComparison.Ordinal))
-                    {
-                        AppLogger.Debug("Added missing source text back into the Markdown output.");
-                    }
-
-                    AppLogger.Debug("Converted clipboard HTML to complete Markdown.");
-                    return repaired.Markdown;
-                }
-
-                AppLogger.Warning("Markdown output remained incomplete after repair. Falling back to conservative Markdown.");
-            }
-
-            if (!string.IsNullOrWhiteSpace(snapshot.Text))
-            {
-                var conservativeMarkdown = MarkdownContentGuard.BuildConservativeMarkdown(snapshot.Text!);
-                var conservativeResult = MarkdownContentGuard.RepairMarkdown(conservativeMarkdown, snapshot.Text);
-                if (conservativeResult.IsComplete)
-                {
-                    AppLogger.Debug("Using conservative Markdown derived from the complete source text.");
-                    return conservativeResult.Markdown;
-                }
+                AppLogger.Debug("Converted clipboard HTML to Markdown.");
+                return markdown;
             }
         }
 
@@ -194,27 +182,27 @@ internal sealed class ClipboardMarkdownService
         if (!string.IsNullOrWhiteSpace(snapshot.Text))
         {
             AppLogger.Debug("Falling back to conservative Markdown derived from plain text.");
-            return MarkdownContentGuard.BuildConservativeMarkdown(snapshot.Text!);
+            return HtmlToMarkdownPipeline.BuildConservativeMarkdown(snapshot.Text!);
         }
 
         AppLogger.Warning("Clipboard snapshot did not contain HTML, text, or image data that could be used.");
         return string.Empty;
     }
 
-    private static string NormalizeText(string text)
+    private static void ForwardHtmlToMarkdownLog(HtmlToMarkdownLogLevel level, string message)
     {
-        var normalized = text.ReplaceLineEndings("\n").Trim();
-        var lines = normalized.Split('\n')
-            .Select(line => line.TrimEnd())
-            .ToArray();
-
-        var builder = new StringBuilder();
-        for (var index = 0; index < lines.Length; index++)
+        switch (level)
         {
-            builder.AppendLine(lines[index]);
+            case HtmlToMarkdownLogLevel.Error:
+                AppLogger.Error(message);
+                break;
+            case HtmlToMarkdownLogLevel.Warning:
+                AppLogger.Warning(message);
+                break;
+            default:
+                AppLogger.Debug(message);
+                break;
         }
-
-        return builder.ToString().Trim();
     }
 
     private sealed class ClipboardSnapshot
