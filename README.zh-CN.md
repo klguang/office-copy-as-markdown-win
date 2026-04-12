@@ -11,7 +11,7 @@
 工作方式：
 
 1. 程序驻留在系统托盘。
-2. 注册快捷键 `Ctrl+Shift+C`。
+2. 注册全局快捷键，默认是 `Ctrl+Shift+C`。
 3. 只有当前台窗口是 Word 或 OneNote 时才触发。
 4. 触发后向前台 Office 窗口发送复制操作。
 5. 读取剪贴板中的 `HTML Format`、纯文本和图片数据。
@@ -72,7 +72,7 @@
 
 安装后程序位于：
 
-[OfficeCopyAsMarkdown.exe](C:/Users/kevin/AppData/Local/OfficeCopyAsMarkdown/OfficeCopyAsMarkdown.exe)
+[OfficeCopyAsMarkdown.exe](C:/Users/kevin/AppData/Local/Programs/OfficeCopyAsMarkdown/OfficeCopyAsMarkdown.exe)
 
 ## 构建
 
@@ -93,6 +93,17 @@ dotnet build .\OfficeCopyAsMarkdown.slnx
 .\scripts\publish.ps1
 ```
 
+该命令现在会同时生成：
+
+- 应用发布目录 `.\artifacts\publish\win-x64-framework-dependent`
+- 安装包目录 `.\artifacts\installer`
+
+如果本机没有安装 Inno Setup 6，可以先安装 `ISCC.exe`，或者跳过安装包步骤：
+
+```powershell
+.\scripts\publish.ps1 -SkipInstaller
+```
+
 默认发布目录：
 
 ```text
@@ -106,18 +117,42 @@ dotnet build .\OfficeCopyAsMarkdown.slnx
 .\scripts\publish.ps1 -SelfContained -SingleFile
 ```
 
+仅基于现有发布目录构建安装包：
+
+```powershell
+.\scripts\build-installer.ps1
+```
+
 说明：
 
 - 默认推荐 `framework-dependent` 版本
 - 单文件自包含版本更大，也更容易触发杀软启发式检测
+
+## 安装程序
+
+推荐给最终用户直接运行安装包：
+
+```text
+.\artifacts\installer\OfficeCopyAsMarkdown-Setup-<version>.exe
+```
+
+安装程序特性：
+
+- 仅安装到当前用户
+- 写入“应用和功能”里的卸载项
+- 程序安装到 `%LOCALAPPDATA%\Programs\OfficeCopyAsMarkdown`
+- 卸载时默认保留 `%LOCALAPPDATA%\OfficeCopyAsMarkdown` 下的日志和设置
+- 依赖 Microsoft Windows Desktop Runtime 10（x64），缺失时会在安装前提示
 
 ## 使用方法
 
 1. 启动程序
 2. 打开 Word 或 OneNote 桌面版
 3. 选中内容
-4. 按 `Ctrl+Shift+C`
+4. 按当前配置的快捷键，默认是 `Ctrl+Shift+C`
 5. 在 Markdown 文档中直接粘贴
+
+你可以通过托盘菜单里的 `Settings...` 修改快捷键。
 
 ## 日志
 
@@ -137,7 +172,7 @@ dotnet build .\OfficeCopyAsMarkdown.slnx
 
 ```powershell
 $env:OFFICE_COPY_AS_MARKDOWN_LOG_LEVEL = "Debug"
-C:\Users\kevin\AppData\Local\OfficeCopyAsMarkdown\OfficeCopyAsMarkdown.exe
+C:\Users\kevin\AppData\Local\Programs\OfficeCopyAsMarkdown\OfficeCopyAsMarkdown.exe
 Remove-Item Env:OFFICE_COPY_AS_MARKDOWN_LOG_LEVEL
 ```
 

@@ -6,16 +6,12 @@ internal static class AppLogger
 {
     private const string EnvironmentVariableName = "OFFICE_COPY_AS_MARKDOWN_LOG_LEVEL";
     private static readonly Lock SyncRoot = new();
-    private static readonly string LogDirectoryPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "OfficeCopyAsMarkdown",
-        "logs");
 
     public static LogLevel CurrentLevel { get; } = ResolveLogLevel();
 
     public static bool IsEnabled => CurrentLevel != LogLevel.None;
 
-    public static string CurrentLogFilePath => Path.Combine(LogDirectoryPath, $"{DateTime.Now:yyyyMMdd}.log");
+    public static string CurrentLogFilePath => Path.Combine(AppPaths.LogDirectoryPath, $"{DateTime.Now:yyyyMMdd}.log");
 
     public static void Info(string message) => Write(LogLevel.Information, message);
 
@@ -34,7 +30,7 @@ internal static class AppLogger
 
         try
         {
-            Directory.CreateDirectory(LogDirectoryPath);
+            Directory.CreateDirectory(AppPaths.LogDirectoryPath);
 
             var builder = new StringBuilder()
                 .Append('[').Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")).Append("] ")

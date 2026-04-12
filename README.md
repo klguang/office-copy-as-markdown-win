@@ -14,7 +14,7 @@ Microsoft's current Office add-in documentation creates two constraints:
 
 Because of that, this project takes a host-agnostic desktop route:
 
-1. Register `Ctrl+Shift+C`.
+1. Register a global hotkey, defaulting to `Ctrl+Shift+C`.
 2. Only act when the foreground process is `WINWORD` or `ONENOTE`.
 3. Send a normal `Ctrl+C` to the foreground Office window.
 4. Read the clipboard's `HTML Format`, plain text, and bitmap data.
@@ -59,6 +59,17 @@ Publish the recommended profile:
 .\scripts\publish.ps1
 ```
 
+That command now builds both:
+
+- the framework-dependent published app in `.\artifacts\publish\win-x64-framework-dependent`
+- a per-user Inno Setup installer in `.\artifacts\installer`
+
+If Inno Setup 6 is not installed, either install `ISCC.exe` first or skip the installer step:
+
+```powershell
+.\scripts\publish.ps1 -SkipInstaller
+```
+
 The published output is written to:
 
 ```text
@@ -72,9 +83,29 @@ Other publish modes:
 .\scripts\publish.ps1 -SelfContained -SingleFile
 ```
 
+Build just the installer from an existing published output:
+
+```powershell
+.\scripts\build-installer.ps1
+```
+
 ## Install
 
-Install the published app for the current user:
+Recommended for end users: run the generated installer:
+
+```text
+.\artifacts\installer\OfficeCopyAsMarkdown-Setup-<version>.exe
+```
+
+The installer:
+
+- installs for the current user only
+- writes an Apps & Features uninstall entry
+- installs binaries to `%LOCALAPPDATA%\Programs\OfficeCopyAsMarkdown`
+- preserves `%LOCALAPPDATA%\OfficeCopyAsMarkdown` user data on uninstall
+- requires Microsoft Windows Desktop Runtime 10 (x64)
+
+For development or manual deployment, you can still install the published app with the helper script:
 
 ```powershell
 .\scripts\install.ps1
@@ -86,10 +117,10 @@ Optional: create a Startup shortcut so it launches when you sign in:
 .\scripts\install.ps1 -Startup
 ```
 
-The installer copies files to:
+The script copies files to:
 
 ```text
-%LOCALAPPDATA%\OfficeCopyAsMarkdown
+%LOCALAPPDATA%\Programs\OfficeCopyAsMarkdown
 ```
 
 If you want to install a self-contained profile explicitly:
@@ -104,10 +135,11 @@ If you want to install a self-contained profile explicitly:
 1. Start `OfficeCopyAsMarkdown.exe`.
 2. Open Word or OneNote desktop.
 3. Select content.
-4. Press `Ctrl+Shift+C`.
+4. Press your configured hotkey. The default is `Ctrl+Shift+C`.
 5. Paste into a Markdown document.
 
 The hotkey is only honored when Word or OneNote is the foreground window.
+You can change it from the tray icon through `Settings...`.
 
 ## Logging
 
@@ -127,7 +159,7 @@ Example for a temporary `Release` session:
 
 ```powershell
 $env:OFFICE_COPY_AS_MARKDOWN_LOG_LEVEL = "Warning"
-.\OfficeCopyAsMarkdown.exe
+C:\Users\kevin\AppData\Local\Programs\OfficeCopyAsMarkdown\OfficeCopyAsMarkdown.exe
 Remove-Item Env:OFFICE_COPY_AS_MARKDOWN_LOG_LEVEL
 ```
 

@@ -8,16 +8,25 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private readonly NotifyIcon _notifyIcon;
     private readonly HotkeyWindow _hotkeyWindow;
     private readonly ClipboardMarkdownService _clipboardMarkdownService;
+    private readonly ApplicationSettingsService _settingsService;
+    private readonly ToolStripMenuItem _copyMenuItem;
+    private AppSettings _settings;
 
     public TrayApplicationContext()
     {
         AppLogger.Info("Initializing tray application context.");
         _clipboardMarkdownService = new ClipboardMarkdownService();
-        _hotkeyWindow = new HotkeyWindow(NativeMethods.MOD_CONTROL | NativeMethods.MOD_SHIFT, (uint)Keys.C);
+        _settingsService = new ApplicationSettingsService();
+        _settings = _settingsService.Load();
+
+        var hotkey = _settings.ResolveHotkey();
+        _hotkeyWindow = new HotkeyWindow(hotkey);
         _hotkeyWindow.HotkeyPressed += OnHotkeyPressed;
 
         var contextMenu = new ContextMenuStrip();
-        contextMenu.Items.Add("Copy Selection as Markdown", null, async (_, _) => await ConvertCurrentSelectionAsync());
+        _copyMenuItem = new ToolStripMenuItem(GetCopyCommandText(hotkey), null, async (_, _) => await ConvertCurrentSelectionAsync());
+        contextMenu.Items.Add(_copyMenuItem);
+        contextMenu.Items.Add("Settings...", null, (_, _) => OpenSettings());
         if (AppLogger.IsEnabled)
         {
             contextMenu.Items.Add("Open Log Folder", null, (_, _) => OpenLogFolder());
@@ -37,7 +46,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _notifyIcon.ShowBalloonTip(
             2500,
             "Office Copy as Markdown",
-            "Active for Word and OneNote when their window is in the foreground. Shortcut: Ctrl+Shift+C",
+            $"Active for Word and OneNote when their window is in the foreground. Shortcut: {hotkey.DisplayText}",
             ToolTipIcon.Info);
         AppLogger.Info("Tray icon ready.");
     }
@@ -74,6 +83,58 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _notifyIcon.ShowBalloonTip(2000, "Markdown copied", result.Message, ToolTipIcon.Info);
     }
 
+    private void OpenSettings()
+    {
+        using var form = new SettingsForm(_hotkeyWindow.ActiveHotkey);
+        if (form.ShowDialog() != DialogResult.OK)
+        {
+            return;
+        }
+
+        var previousHotkey = _hotkeyWindow.ActiveHotkey;
+        var newHotkey = form.SelectedHotkey;
+        if (newHotkey == previousHotkey)
+        {
+            return;
+        }
+
+        if (!_hotkeyWindow.TryUpdateHotkey(newHotkey, out var error))
+        {
+            MessageBox.Show(
+                error,
+                "Office Copy as Markdown",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        try
+        {
+            var updatedSettings = AppSettings.FromHotkey(newHotkey);
+            _settingsService.Save(updatedSettings);
+            _settings = updatedSettings;
+            _copyMenuItem.Text = GetCopyCommandText(newHotkey);
+            _notifyIcon.ShowBalloonTip(
+                2000,
+                "Shortcut updated",
+                $"The new shortcut is {newHotkey.DisplayText}.",
+                ToolTipIcon.Info);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Error("Failed to save updated hotkey settings.", ex);
+            _hotkeyWindow.TryUpdateHotkey(previousHotkey, out _);
+            _settings = AppSettings.FromHotkey(previousHotkey);
+            _copyMenuItem.Text = GetCopyCommandText(previousHotkey);
+
+            MessageBox.Show(
+                "The shortcut was not saved. The previous shortcut is still active.",
+                "Office Copy as Markdown",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+        }
+    }
+
     private static void OpenLogFolder()
     {
         var directory = Path.GetDirectoryName(AppLogger.CurrentLogFilePath);
@@ -89,5 +150,10 @@ internal sealed class TrayApplicationContext : ApplicationContext
             Arguments = directory,
             UseShellExecute = true
         });
+    }
+
+    private static string GetCopyCommandText(HotkeyGesture hotkey)
+    {
+        return $"Copy Selection as Markdown ({hotkey.DisplayText})";
     }
 }

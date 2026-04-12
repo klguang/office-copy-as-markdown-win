@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$installDir = Join-Path $env:LOCALAPPDATA "OfficeCopyAsMarkdown"
+$installDir = Join-Path $env:LOCALAPPDATA "Programs\OfficeCopyAsMarkdown"
 $startMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Office Copy as Markdown"
 $desktopShortcut = Join-Path ([Environment]::GetFolderPath("Desktop")) "Office Copy as Markdown.lnk"
 $startupShortcut = Join-Path ([Environment]::GetFolderPath("Startup")) "Office Copy as Markdown.lnk"

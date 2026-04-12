@@ -2,7 +2,8 @@ param(
     [string]$Configuration = "Release",
     [string]$Runtime = "win-x64",
     [switch]$SelfContained,
-    [switch]$SingleFile
+    [switch]$SingleFile,
+    [switch]$SkipInstaller
 )
 
 $ErrorActionPreference = "Stop"
@@ -26,3 +27,7 @@ dotnet publish $project `
     -o $output
 
 Write-Host "Published to $output"
+
+if (-not $SelfContained -and -not $SingleFile -and -not $SkipInstaller) {
+    & (Join-Path $PSScriptRoot "build-installer.ps1") -Profile $profileName
+}

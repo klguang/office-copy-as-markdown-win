@@ -14,11 +14,11 @@ if (-not (Test-Path $exePath)) {
         $singleFile = $Profile -like "*single-file*"
         & (Join-Path $PSScriptRoot "publish.ps1") -SelfContained -SingleFile:$singleFile
     } else {
-        & (Join-Path $PSScriptRoot "publish.ps1")
+        & (Join-Path $PSScriptRoot "publish.ps1") -SkipInstaller
     }
 }
 
-$installDir = Join-Path $env:LOCALAPPDATA "OfficeCopyAsMarkdown"
+$installDir = Join-Path $env:LOCALAPPDATA "Programs\OfficeCopyAsMarkdown"
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
 Copy-Item -Path (Join-Path $publishDir "*") -Destination $installDir -Recurse -Force
 
