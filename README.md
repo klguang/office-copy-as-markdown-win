@@ -2,6 +2,14 @@
 
 `office-copy-as-markdown` is a Windows helper for Word and OneNote desktop that converts the current selection to Markdown and puts the Markdown back on the clipboard.
 
+## Documentation
+
+- User guide: [English](docs/user-guide.md) / [zh-CN](docs/user-guide.zh-CN.md)
+- Heading rules: [English](docs/heading-rules.md) / [zh-CN](docs/heading-rules.zh-CN.md)
+- Content completeness rules: [English](docs/content-check.md) / [zh-CN](docs/content-check.zh-CN.md)
+- Development and publishing: [English](docs/development.md) / [zh-CN](docs/development.zh-CN.md)
+- Troubleshooting and logging: [English](docs/troubleshooting.md) / [zh-CN](docs/troubleshooting.zh-CN.md)
+
 ## What It Supports
 
 Supported Office clients:
@@ -28,10 +36,12 @@ Supported Markdown output:
 
 ## Install
 
-Recommended for end users: run the generated installer:
+Recommended for end users: download the latest installer from [Releases](https://github.com/klguang/office-copy-as-markdown-win/releases).
+
+Installer file name:
 
 ```text
-.\artifacts\installer\OfficeCopyAsMarkdown-Setup-<version>.exe
+OfficeCopyAsMarkdown-Setup-<version>.exe
 ```
 
 The installer:
@@ -59,11 +69,3 @@ You can change it from the tray icon through `Settings...`.
 - If the clipboard only contains a bitmap for an image, the app falls back to a `data:image/png;base64,...` Markdown image.
 - Very complex Office layouts may still need manual cleanup after conversion.
 - Unsigned desktop utilities that register hotkeys and rewrite clipboard contents may trigger antivirus heuristics.
-
-## Documentation
-
-- User guide: [English](docs/user-guide.md) / [zh-CN](docs/user-guide.zh-CN.md)
-- Heading rules: [English](docs/heading-rules.md) / [zh-CN](docs/heading-rules.zh-CN.md)
-- Content completeness rules: [English](docs/content-check.md) / [zh-CN](docs/content-check.zh-CN.md)
-- Development and publishing: [English](docs/development.md) / [zh-CN](docs/development.zh-CN.md)
-- Troubleshooting and logging: [English](docs/troubleshooting.md) / [zh-CN](docs/troubleshooting.zh-CN.md)
