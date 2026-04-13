@@ -1,5 +1,7 @@
 # 全文完整性校验与补回规则
 
+English version: [content-check.md](content-check.md)
+
 ## 目标
 
 1. 最终输出必须是 Markdown。

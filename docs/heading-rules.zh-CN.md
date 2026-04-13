@@ -1,5 +1,7 @@
 # 标题判断规则
 
+English version: [heading-rules.md](heading-rules.md)
+
 本文档定义 `office-copy-as-markdown` 中标题识别的最终规则。
 
 ## 总流程
