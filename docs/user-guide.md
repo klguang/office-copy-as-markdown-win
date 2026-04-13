@@ -4,6 +4,12 @@ Chinese version: [README.md](../README.md)
 
 Copy the current Word or OneNote selection as Markdown with one shortcut.
 
+## Quick Overview
+
+- Supports Word desktop and OneNote desktop
+- Default shortcut: `Ctrl+Shift+C`
+- Recommended install source: [Releases](https://github.com/klguang/office-copy-as-markdown-win/releases)
+
 ## Supported Office Clients
 
 Supported clients:

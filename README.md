@@ -4,6 +4,12 @@ English version: [user-guide.md](docs/user-guide.md)
 
 把 Word / OneNote 选中内容一键复制为 Markdown。
 
+## 快速了解
+
+- 支持 Word 桌面版和 OneNote 桌面版
+- 默认快捷键是 `Ctrl+Shift+C`
+- 推荐从 [Releases](https://github.com/klguang/office-copy-as-markdown-win/releases) 下载安装包
+
 ## 支持的 Office 客户端
 
 支持的客户端：
